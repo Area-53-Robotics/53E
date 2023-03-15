@@ -1,0 +1,10 @@
+diff --git a/requirements.txt b/requirements.txt
+index 0cbde8f..b8cf6ca 100644
+--- a/requirements.txt
++++ b/requirements.txt
+@@ -13,4 +13,3 @@ scan-build==2.0.13
+ sentry-sdk
+ observable
+ pypng==0.0.20
+-pyinstaller
+\ No newline at end of file

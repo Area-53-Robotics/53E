@@ -1,0 +1,14 @@
+diff --git a/pros/common/utils.py b/pros/common/utils.py
+index 96ebb12..4657fb8 100644
+--- a/pros/common/utils.py
++++ b/pros/common/utils.py
+@@ -40,6 +40,11 @@ def get_version():
+                     ver = dist.version
+                     if ver is not None:
+                         return ver
++    try:
++        ver="3.4.1"
++        return ver
++    except:
++        pass
+     raise RuntimeError('Could not determine version')

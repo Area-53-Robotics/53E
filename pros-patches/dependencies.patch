@@ -1,0 +1,19 @@
+diff --git a/requirements.txt b/requirements.txt
+index 1e6fe13..6d6a371 100644
+--- a/requirements.txt
++++ b/requirements.txt
+@@ -1,4 +1,4 @@
+-click>=6,<7
++click
+ pyserial
+ cachetools
+ requests
+@@ -8,7 +8,7 @@ semantic_version
+ colorama
+ pyzmq
+ cobs
+-scan-build==2.0.13
++scan-build
+ sentry-sdk
+ observable
+ pypng==0.0.20
