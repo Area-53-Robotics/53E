@@ -149,6 +149,15 @@
             clang-tools
             gcc-arm-embedded-10
 
+            # Python deps for graphing
+            nodePackages_latest.pyright
+            black
+            python310Packages.matplotlib
+            python310Packages.numpy
+            python310Packages.pandas
+            #python310Packages.scipy
+            python310
+
           ];
         };
       });
