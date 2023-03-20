@@ -1,3 +1,6 @@
+#include "devices.h"
+#include "main.h"
+#include "subsystems/pid.hpp"
 /**
  * Runs the user autonomous code. This function will be started in its own task
  * with the default priority and stack size whenever the robot is enabled via
@@ -9,4 +12,9 @@
  * will be stopped. Re-enabling the robot will restart the task, not re-start it
  * from where it left off.
  */
-void autonomous() {}
+
+void autonomous() {
+  printf("Started Auton\n");
+  chassis.move_to_point(0, 40, 90, 75);
+  printf("finished pid\n");
+}

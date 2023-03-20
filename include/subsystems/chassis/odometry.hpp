@@ -16,6 +16,9 @@ class Odometry {
   double get_y();
   double get_rot();
 
+  double get_linear_error(Point target);
+  double get_rot_error(Point target);
+
  private:
   pros::ADIEncoder left_encoder;
   pros::ADIEncoder center_encoder;

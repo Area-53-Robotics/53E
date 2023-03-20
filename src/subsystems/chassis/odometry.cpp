@@ -10,8 +10,6 @@ Odometry::Odometry(std::array<int, 2> left_encoder_ports,
 
       };
 
-// Odometry::~Odometry(){};
-
 Odometry::~Odometry() {
   printf("odom task killed\n");
   if (odom_task != nullptr) {
@@ -27,17 +25,41 @@ void Odometry::init() {
   odom_task = new pros::Task([this] { this->odom_task_function(); });
 };
 
+Point Odometry::get_position() { return current_position; }
+
+double Odometry::get_linear_error(Point target) {
+  return current_position.get_linear_dist(target);
+}
+
+double Odometry::get_rot_error(Point target) {
+  double x = target.x;
+  double y = target.y;
+
+  x -= current_position.x;
+  y -= current_position.y;
+
+  double delta_theta = atan2(y, x) - current_position.rotation;
+
+  while (fabs(delta_theta) > M_PI) {
+    delta_theta -= 2 * M_PI * delta_theta / fabs(delta_theta);
+  }
+
+  return delta_theta;
+}
+
 void Odometry::odom_task_function() {
   // Pilons the goat
   //  http://thepilons.ca/wp-content/uploads/2018/10/Tracking.pdf
   printf("Starting odom task\n");
+  int time_elapsed = 0;
   // Constants
-  const double WHEEL_RADIUS = 2.75;
+  const double WHEEL_RADIUS = 2.75 / 2;
 
   // starting angle
   const double THETA_START = M_PI;
 
-  const double LEFT_TRACKING_RADIUS = 3.25;
+  const double LEFT_TRACKING_RADIUS =
+      3.25;  // TODO: move these values to some kind of config option
   const double S_TRACKING_RADIUS = 2.0;
 
   double left_position;
@@ -72,9 +94,8 @@ void Odometry::odom_task_function() {
 
     // Distance moved in inches
     delta_l =
-        ((left_position - left_prev_position) * M_PI / 180) * WHEEL_RADIUS;
-
-    delta_s = ((s_position - s_prev_position) * M_PI / 180) * WHEEL_RADIUS;
+        ((left_position - left_prev_position) * (M_PI / 180) * WHEEL_RADIUS);
+    delta_s = (s_position - s_prev_position) * (M_PI / 180 * WHEEL_RADIUS);
 
     // Log previous values in degrees
     left_prev_position = left_position;
@@ -83,11 +104,6 @@ void Odometry::odom_task_function() {
     // Total movement on both encoders in inches
     total_delta_l += delta_l;
     total_delta_s += delta_s;
-    // printf("lp: %f ,dl: %f pdl: %f tdl: %f\n", left_position, delta_l,
-    // left_prev_position, total_delta_l);
-    // printf("sp: %f ,ds: %f pd: %f tds: %f\n", s_position, delta_s,
-    // s_prev_position, total_delta_s);
-    // printf("lp: %f sp: %f\n", left_position, s_position);
 
     // Radians
     current_absolute_orientation = (360 - imu.get_heading() * M_PI / 180);
@@ -130,12 +146,19 @@ void Odometry::odom_task_function() {
     current_position.x += delta_x_global;
     current_position.y += delta_y_global;
     current_position.rotation = current_absolute_orientation;
-    // printf("dl: %f, ds: %f, abs or: %f, x: %f, y: %f\n", total_delta_l,
-    // total_delta_s, imu.get_heading(), current_position.x,
-    // current_position.y);
-    printf("%f, %f\n", current_position.x, current_position.y);
+
+    // The brain terminal can't handle printing faster than 50 ms
+    if (time_elapsed % 50 == 0) {
+      // printf("dl: %f, ds: %f, abs or: %f, x: %f, y: %f\n", total_delta_l,
+      // total_delta_s, imu.get_heading(), current_position.x,
+      // current_position.y);
+      // printf("%f, %f\n", total_delta_l, total_delta_s);
+      printf("%f, %f\n", current_position.x, current_position.y);
+    }
 
     // delay to give other tasks time to do things
-    pros::delay(50);  // ADI encoders refresh at max 10ms
+    time_elapsed += 10;
+    pros::delay(10);  // ADI encoders refresh at max 10ms. This is an arbitrary
+                      // limit set by vex because they were scared of our power.
   }
 }

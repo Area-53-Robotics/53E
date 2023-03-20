@@ -6,8 +6,8 @@ class Point {
   Point(double x, double y, double rotation);
   ~Point();
 
-  double get_linear_error(Point target);
-  double get_rot_error(Point target);
+  float get_linear_dist(Point other);
+  float get_rot_dist(Point other);
 
   double x;
   double y;
