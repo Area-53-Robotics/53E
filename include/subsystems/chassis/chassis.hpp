@@ -13,20 +13,12 @@ class Chassis {
 
   void init();
 
-  bool settled();
-
   Point get_position();
 
+  void turn_to_point(float x, float y, int max_speed);
   void move_to_point(float x, float y, float theta, int max_speed);
 
   void tank(int left, int right);
-
-  enum class Mode {
-    Moving,
-    Idle,
-  };
-
-  Mode current_mode;
 
  private:
   pros::Motor_Group left_motors;
@@ -35,9 +27,7 @@ class Chassis {
   void chassis_task_function();
   pros::Task* chassis_task;
 
-  Point target_point;
-
-  Pid linear_pid;
-  Pid rotational_pid;
+  Pid::PidController linear_pid_controller;
+  Pid::PidController rotational_pid_controller;
   Odometry odometry;
 };

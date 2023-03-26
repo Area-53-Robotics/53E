@@ -1,6 +1,9 @@
 #include "subsystems/chassis/odometry.hpp"
 
+#include <cmath>
+
 #include "pros/imu.hpp"
+#include "utils.hpp"
 
 Odometry::Odometry(std::array<int, 2> left_encoder_ports,
                    std::array<int, 2> center_encoder_ports, int imu_port)
@@ -28,23 +31,32 @@ void Odometry::init() {
 Point Odometry::get_position() { return current_position; }
 
 double Odometry::get_linear_error(Point target) {
-  return current_position.get_linear_dist(target);
+  // We want the distance that the robot can travel to get closest to the point
+  // assuming that we can only move in a straight line. This means that linear
+  // error will increase as we turn to face the target.
+  float delta_x = target.x - current_position.x;
+  float delta_y = target.y - current_position.y;
+  float rot_error = get_rot_error(target);
+  float hypot = std::hypot(delta_x, delta_y);
+  float linear_error = hypot * sin(rot_error);
+  return linear_error;
 }
 
 double Odometry::get_rot_error(Point target) {
-  double x = target.x;
-  double y = target.y;
+  float delta_x = target.x - current_position.x;
+  float delta_y = target.y - current_position.y;
 
-  x -= current_position.x;
-  y -= current_position.y;
+  float target_theta = fmod(rad_to_deg(M_PI_2 - atan2(delta_y, delta_x)), 360);
 
-  double delta_theta = atan2(y, x) - current_position.rotation;
+  float diff_theta_1 = angle_error(current_position.rotation, target_theta);
+  float diff_theta_2 =
+      angle_error(current_position.rotation, target_theta + 180);
 
-  while (fabs(delta_theta) > M_PI) {
-    delta_theta -= 2 * M_PI * delta_theta / fabs(delta_theta);
-  }
+  float rotational_error = (std::fabs(diff_theta_1) < std::fabs(diff_theta_2))
+                               ? diff_theta_1
+                               : diff_theta_2;
 
-  return delta_theta;
+  return rotational_error;
 }
 
 void Odometry::odom_task_function() {
@@ -153,7 +165,7 @@ void Odometry::odom_task_function() {
       // total_delta_s, imu.get_heading(), current_position.x,
       // current_position.y);
       // printf("%f, %f\n", total_delta_l, total_delta_s);
-      printf("%f, %f\n", current_position.x, current_position.y);
+      // printf("%f, %f\n", current_position.x, current_position.y);
     }
 
     // delay to give other tasks time to do things

@@ -14,12 +14,13 @@ Chassis::Chassis(std::vector<int8_t> left_ports,
                  Pid::PidController rotational_pid_options)
     : left_motors(left_ports),
       right_motors(right_ports),
-      current_mode(Mode::Idle),
-      linear_pid(linear_pid_options),
-      rotational_pid(rotational_pid_options),
+      linear_pid_controller(linear_pid_options),
+      rotational_pid_controller(rotational_pid_options),
       odometry(left_encoder_ports, center_encoder_ports, imu_port) {
   left_motors.set_gearing(gearset);
   right_motors.set_gearing(gearset);
+  left_motors.set_brake_modes(pros::E_MOTOR_BRAKE_BRAKE);
+  right_motors.set_brake_modes(pros::E_MOTOR_BRAKE_BRAKE);
 }
 
 Chassis::~Chassis() {
@@ -38,18 +39,35 @@ void Chassis::init() {
   chassis_task = new pros::Task([this] { this->chassis_task_function(); });
 }
 
-bool Chassis::settled() { return linear_pid.settled(); }
-
 Point Chassis::get_position() { return odometry.get_position(); }
 
+void Chassis::turn_to_point(float x, float y, int max_speed) {
+  printf("turning to point\n");
+  Point target_point(x, y, 0);
+  Pid pid(rotational_pid_controller);
+  pid.max_time = 3000;
+  while (!pid.settled()) {
+    float error_theta = odometry.get_rot_error(target_point);
+    float power = pid.update(error_theta, 0, true);
+
+    // left_motors.move(-power);
+    // right_motors.move(power);
+    pros::delay(10);
+  }
+  printf("exited turn pid\n");
+  left_motors.brake();
+  right_motors.brake();
+}
+
 void Chassis::move_to_point(float x, float y, float theta, int max_speed) {
-  Point current_position;
-  int left_power;
-  int right_power;
-  bool close;
-  float lead = 0.5;  // TODO: make this a config option
-  while (!settled()) {
-    current_position = odometry.get_position();
+  Point target(x, y, theta);
+  float prev_linear_power = 0;
+  float prev_rotational_power = 0;
+  bool close = false;
+  // float lead = 0.5;  // TODO: make this a config option
+  Pid linear_pid(linear_pid_controller);
+  Pid rotational_pid(rotational_pid_controller);
+  while (!linear_pid.settled()) {
     /*
     carrot_point = Point(
         (target_point.x - distance * sin(target_point.rotation) * lead),
@@ -57,28 +75,51 @@ void Chassis::move_to_point(float x, float y, float theta, int max_speed) {
         0.0);
         */
 
+    Point current_position = odometry.get_position();
+    // update error
+    float linear_error = odometry.get_linear_error(target);
+    float rotational_error = odometry.get_rot_error(target);
+
+    /*
     double linear_error = odometry.get_linear_error(target_point);
     double rotational_error = odometry.get_rot_error(target_point) * 180 /
                               M_PI;  // The pid loop is tuned for degrees
+                                      */
 
-    double linear_power = linear_pid.update(linear_error);
-    double rotational_power = rotational_pid.update(rotational_error);
+    double linear_power = linear_pid.update(linear_error, 0);
+    double rotational_power = rotational_pid.update(rotational_error, 0);
 
-    if (linear_error < 7.5) {
+    if (current_position.get_linear_dist(Point(x, y, 0)) < 2) {
       close = true;
+      max_speed = (std::fabs(prev_linear_power) < 30)
+                      ? 30
+                      : std::fabs(prev_linear_power);
     }
 
-    left_power = limit(linear_power - rotational_power, -max_speed, max_speed);
-    right_power = limit(linear_power + rotational_power, -max_speed, max_speed);
-    // printf("%i, %i\n", left_power, right_power);
+    linear_power = limit(linear_power, -max_speed, max_speed);
+    if (close) rotational_power = 0;
 
-    //  Race conditions here I come
+    prev_linear_power = linear_power;
+    prev_rotational_power = rotational_power;
+
+    float left_power = linear_power - rotational_power;
+    float right_power =
+        linear_power +
+        rotational_power;  // ratio the speeds to respect the max speed
+    float ratio =
+        std::max(std::fabs(left_power), std::fabs(right_power)) / max_speed;
+    if (ratio > 1) {
+      left_power /= ratio;
+      right_power /= ratio;
+    }
+
     left_motors.move(left_power);
     right_motors.move(right_power);
     pros::delay(20);
   }
-  // Idk maybe this is a sign this should be it's own function
   printf("move exited\n");
+  left_motors.brake();
+  right_motors.brake();
 }
 
 void Chassis::tank(int left, int right) {

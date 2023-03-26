@@ -1,31 +1,40 @@
 #include "subsystems/pid.hpp"
 
 #include "api.h"
+#include "utils.hpp"
 
 Pid::Pid(Pid::PidController controller) {
   this->ka = controller.ka;
   this->kp = controller.kp;
   this->ki = controller.ki;
   this->kd = controller.kd;
+  this->small_error = controller.small_error;
+  this->small_time = controller.small_error_timeout;
+  this->large_error = controller.large_error;
+  this->large_time = controller.large_error_timeout;
 };
 
 void Pid::reset() {
   prev_error = 0;
   total_error = 0;
   prev_output = 0;
-
-  start_time = 0;
 }
 
-float Pid::update(double error) {
-  // calculate output
+float Pid::update(float target, float position, bool log) {
+  // TODO: Implement feedforward
+  //   calculate output
+  float error = target - position;
   float delta_error = error - prev_error;
   float output = kp * error + ki * total_error + kd * delta_error;
   prev_output = output;
   prev_error = error;
   total_error += error;
-  // printf("%f, %f, %f, %f\n", output, kp * error, ki * total_error,
-  // kd * delta_error);
+  if (ka != 0) output = slew(output, prev_output, ka);
+  if (log) {
+    printf("%f, %f, %f, %f\n", output, kp * error, ki * total_error,
+           kd * delta_error);
+  }
+
   return output;
 }
 

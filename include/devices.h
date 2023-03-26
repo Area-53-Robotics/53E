@@ -17,8 +17,8 @@ inline Pid::PidController linear_pid_controller{
 };
 
 inline Pid::PidController rotational_pid_controller{
-    0,    // ka
-    4,    // kp
+    1,    // ka
+    2,    // kp
     0,    // ki
     10,   // kd
     1,    // small error
@@ -44,4 +44,4 @@ inline Chassis chassis(
     linear_pid_controller, rotational_pid_controller);
 
 inline pros::Controller controller(pros::E_CONTROLLER_MASTER);
-//inline pros::ADILed led_strip(-1, 40);
+// inline pros::ADILed led_strip(-1, 40);

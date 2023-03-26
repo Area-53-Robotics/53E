@@ -17,10 +17,12 @@ class Pid {
 
   Pid(PidController pid_controller);
 
-  float update(double error);
+  float update(float target, float position, bool log = false);
   bool settled();
 
   void reset();
+
+  int max_time = -1;  // -1 means no max time set, run forever
 
  private:
   float ka;
@@ -36,7 +38,6 @@ class Pid {
   float small_error;
   int large_time = 0;
   int small_time = 0;
-  int max_time = -1;  // -1 means no max time set, run forever
 
   int large_time_counter = 0;
   int small_time_counter = 0;
