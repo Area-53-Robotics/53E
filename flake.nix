@@ -142,12 +142,16 @@
         };
       in
       {
-        devShell = with pkgs; mkShell {
+        devShell = with pkgs; mkShell rec {
 
           buildInputs = with pkgs; [
             pros-cli
             clang-tools
             gcc-arm-embedded-10
+
+            gcc
+            cmake
+            pkg-config
 
             # Python deps for graphing
             nodePackages_latest.pyright
@@ -155,9 +159,25 @@
             python310Packages.matplotlib
             python310Packages.numpy
             python310Packages.pandas
-            #python310Packages.scipy
             python310
 
+            #glibc
+            SDL2
+            xorg.libX11
+            xorg.libX11.dev
+            xorg.libXft
+            xorg.libXfixes
+            xorg.libXScrnSaver
+            xorg.libXi
+            xorg.libXcursor
+            xorg.libXrandr
+            xorg.libXrender
+            xorg.libXext
+            xorg.libxcb
+            xorg.libXau
+            xorg.libXdmcp
+            #glibc
+            lcov
           ];
         };
       });
